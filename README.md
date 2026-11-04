@@ -26,6 +26,8 @@ A small Go binary that exposes an S3-compatible API on one port and a **read-onl
 docker compose up -d
 ```
 
+Pre-built multi-arch images are published to `ghcr.io/potibm/s3hog:latest` on every push to `main`.
+
 Open http://localhost:8025 and use S3 credentials `s3hog` / `s3hogsecret`.
 
 If ports `9000` or `8025` are already in use on your host, override the host-side ports:
