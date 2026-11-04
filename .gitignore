@@ -1,0 +1,8 @@
+bin/
+*.exe
+*.test
+*.out
+s3hog-data/
+data/
+/tmp/
+.DS_Store

@@ -1,0 +1,20 @@
+services:
+  s3hog:
+    build: .
+    image: s3hog:latest
+    ports:
+      # Host ports can be overridden via S3_HOST_PORT / UI_HOST_PORT
+      # (e.g. when 9000/8025 are already in use on the host).
+      - "${S3_HOST_PORT:-9000}:9000"
+      - "${UI_HOST_PORT:-8025}:8025"
+    environment:
+      ACCESS_KEY_ID: s3hog
+      SECRET_ACCESS_KEY: s3hogsecret
+      S3_DATA_DIR: /data
+      AUTO_BUCKET: "true"
+    volumes:
+      - s3hog-data:/data
+    restart: unless-stopped
+
+volumes:
+  s3hog-data:

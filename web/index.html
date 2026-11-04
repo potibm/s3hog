@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>s3hog</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>s3hog</h1>
+  <span class="status" id="status">connecting…</span>
+</header>
+<main>
+  <div class="toolbar">
+    <select id="bucketFilter"><option value="">All buckets</option></select>
+    <input id="search" type="search" placeholder="Search keys…">
+    <button id="refresh">Refresh</button>
+  </div>
+  <table id="objects">
+    <thead>
+      <tr><th>Bucket</th><th>Key</th><th>Size</th><th>Uploaded</th><th></th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <p id="empty" class="empty" hidden>No objects.</p>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>
