@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -9,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -74,18 +74,18 @@ func verifyHeader(r *http.Request, accessKey, secretKey string) error {
 	}
 
 	// payload hash
-	body, err := readBody(r)
+	// Stream the body to a temp file and compute its SHA256 while reading,
+	// so we never hold the whole body in memory.
+	computedHash, err := readBody(r)
 	if err != nil {
 		return err
 	}
 	payloadHash := r.Header.Get("X-Amz-Content-Sha256")
 	if payloadHash == "" {
-		h := sha256.Sum256(body)
-		payloadHash = hex.EncodeToString(h[:])
+		payloadHash = computedHash
 	}
 	if payloadHash != "UNSIGNED-PAYLOAD" && !strings.HasPrefix(payloadHash, "STREAMING-") {
-		h := sha256.Sum256(body)
-		if payloadHash != hex.EncodeToString(h[:]) {
+		if payloadHash != computedHash {
 			return fmt.Errorf("payload hash mismatch")
 		}
 	}
@@ -113,8 +113,8 @@ func verifyPresigned(r *http.Request, accessKey, secretKey string) error {
 	signature := q.Get("X-Amz-Signature")
 	amzDate := q.Get("X-Amz-Date")
 	expiresStr := q.Get("X-Amz-Expires")
-
-	if credential == "" || signedHeadersStr == "" || signature == "" || amzDate == "" {
+	
+	if credential == "" || signedHeadersStr == "" || signature == "" || amzDate == "" || expiresStr == "" {
 		return fmt.Errorf("missing presigned params")
 	}
 
@@ -143,14 +143,20 @@ func verifyPresigned(r *http.Request, accessKey, secretKey string) error {
 	}
 
 	// expiry
-	expires, _ := atoi(expiresStr)
-	if expires > 0 {
-		t, err := time.Parse("20060102T150405Z", amzDate)
-		if err == nil {
-			if time.Since(t) > time.Duration(expires)*time.Second {
-				return fmt.Errorf("presigned URL expired")
-			}
-		}
+	expires, err := atoi(expiresStr)
+	if err != nil || expires <= 0 {
+		return fmt.Errorf("invalid X-Amz-Expires")
+	}
+	// AWS limits presigned URLs to max 7 days
+	if expires > 604800 {
+		return fmt.Errorf("X-Amz-Expires exceeds maximum of 604800 seconds")
+	}
+	t, err := time.Parse("20060102T150405Z", amzDate)
+	if err != nil {
+		return fmt.Errorf("invalid amz date")
+	}
+	if time.Since(t) > time.Duration(expires)*time.Second {
+		return fmt.Errorf("presigned URL expired")
 	}
 
 	signedHeaders := strings.Split(signedHeadersStr, ";")
@@ -223,14 +229,50 @@ func parseAuthHeader(auth string) (credentials, []string, string, error) {
 	return creds, strings.Split(signedHeadersStr, ";"), signature, nil
 }
 
-func readBody(r *http.Request) ([]byte, error) {
+// readBody streams the request body into a temporary file, computing its SHA256
+// hash while reading, so large uploads do not exhaust memory. It replaces r.Body
+// with a reader over the temporary file. The caller is responsible for closing
+// r.Body; the temp file is removed when closed.
+func readBody(r *http.Request) (string, error) {
 	if r.Body == nil {
-		return nil, nil
+		return "", nil
 	}
-	b, err := io.ReadAll(r.Body)
+	tmp, err := os.CreateTemp("", "s3hog-body-*")
+	if err != nil {
+		return "", err
+	}
+	hasher := sha256.New()
+	w := io.MultiWriter(tmp, hasher)
+	if _, err := io.Copy(w, r.Body); err != nil {
+		r.Body.Close()
+		tmp.Close()
+		os.Remove(tmp.Name())
+		return "", err
+	}
 	r.Body.Close()
-	r.Body = io.NopCloser(bytes.NewReader(b))
-	return b, err
+	tmp.Close()
+
+	f, err := os.Open(tmp.Name())
+	if err != nil {
+		os.Remove(tmp.Name())
+		return "", err
+	}
+	// Wrap so the temp file is cleaned up when the body is closed.
+	r.Body = &tempFileBody{File: f, path: tmp.Name()}
+
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+// tempFileBody wraps an *os.File and removes the backing temp file on Close.
+type tempFileBody struct {
+	*os.File
+	path string
+}
+
+func (t *tempFileBody) Close() error {
+	err := t.File.Close()
+	os.Remove(t.path)
+	return err
 }
 
 func checkSkew(amzDate string) error {

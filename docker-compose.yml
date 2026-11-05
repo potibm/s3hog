@@ -8,8 +8,9 @@ services:
       - "${S3_HOST_PORT:-9000}:9000"
       - "${UI_HOST_PORT:-8025}:8025"
     environment:
-      ACCESS_KEY_ID: s3hog
-      SECRET_ACCESS_KEY: s3hogsecret
+      # Set your own credentials; no defaults are provided.
+      ACCESS_KEY_ID: ${ACCESS_KEY_ID:-changeme}
+      SECRET_ACCESS_KEY: ${SECRET_ACCESS_KEY:-changeme}
       S3_DATA_DIR: /data
       AUTO_BUCKET: "true"
     volumes:

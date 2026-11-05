@@ -13,8 +13,6 @@ EXPOSE 9000 8025
 VOLUME ["/data"]
 ENV S3_PORT=9000 \
     UI_PORT=8025 \
-    ACCESS_KEY_ID=s3hog \
-    SECRET_ACCESS_KEY=s3hogsecret \
     S3_DATA_DIR=/data \
     AUTO_BUCKET=true \
     REGION=us-east-1

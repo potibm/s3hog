@@ -27,6 +27,10 @@ func NewUIHandler(backend *storage.Backend, broker *events.Broker, webFS http.Fi
 }
 
 func (h *UIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-Frame-Options", "DENY")
+	w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+	w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'")
 	p := r.URL.Path
 	switch {
 	case p == "/api/buckets":
@@ -72,6 +76,7 @@ func (h *UIHandler) handleObjects(w http.ResponseWriter, r *http.Request) {
 	}
 	bucketFilter := r.URL.Query().Get("bucket")
 	var objs []model.Object
+	const maxObjects = 10000
 	buckets, err := h.backend.ListBuckets()
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -81,6 +86,9 @@ func (h *UIHandler) handleObjects(w http.ResponseWriter, r *http.Request) {
 		if bucketFilter != "" && bb.Name != bucketFilter {
 			continue
 		}
+		if len(objs) >= maxObjects {
+			break
+		}
 		// list all keys
 		page := gofakes3.ListBucketPage{}
 		for {
@@ -89,6 +97,9 @@ func (h *UIHandler) handleObjects(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			for _, c := range ol.Contents {
+				if len(objs) >= maxObjects {
+					break
+				}
 				objs = append(objs, model.Object{
 					Bucket:       bb.Name,
 					Key:          c.Key,

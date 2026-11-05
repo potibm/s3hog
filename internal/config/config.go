@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strconv"
 )
@@ -27,11 +28,8 @@ func Load() Config {
 		AutoBucket:  envBool("AUTO_BUCKET", true),
 		Region:      envOr("REGION", "us-east-1"),
 	}
-	if cfg.AccessKeyID == "" {
-		cfg.AccessKeyID = "s3hog"
-	}
-	if cfg.SecretKey == "" {
-		cfg.SecretKey = "s3hogsecret"
+	if cfg.AccessKeyID == "" || cfg.SecretKey == "" {
+		log.Fatal("ACCESS_KEY_ID and SECRET_ACCESS_KEY must be set; refusing to start with default credentials")
 	}
 	return cfg
 }
