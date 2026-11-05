@@ -26,7 +26,7 @@ A small Go binary that exposes an S3-compatible API on one port and a **read-onl
 docker compose up -d
 ```
 
-Pre-built multi-arch images are published to `ghcr.io/potibm/s3hog:latest` on every push to `main`.
+Pre-built multi-arch images are published to `ghcr.io/potibm/s3hog` on each release (see GitHub Releases).
 
 Open http://localhost:8025. Set `ACCESS_KEY_ID` and `SECRET_ACCESS_KEY` (or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`) before starting.
 

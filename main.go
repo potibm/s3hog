@@ -14,12 +14,22 @@ import (
 	"github.com/potibm/s3hog/internal/storage"
 )
 
+const readHeaderTimeoutSeconds = 30
+
 //go:embed web/*
 var webAssets embed.FS
+
+// Build metadata injected by GoReleaser via -ldflags.
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
 
 func main() {
 	cfg := config.Load()
 	broker := events.NewBroker()
+
 	backend, err := storage.New(cfg.DataDir, broker)
 	if err != nil {
 		log.Fatalf("storage init: %v", err)
@@ -29,6 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("web assets: %v", err)
 	}
+
 	webFS := http.FS(webSub)
 
 	s3Handler := api.NewS3Handler(cfg, backend)
@@ -37,12 +48,15 @@ func main() {
 	// S3 server
 	go func() {
 		addr := ":" + cfg.S3Port
+
 		ln, err := net.Listen("tcp", addr)
 		if err != nil {
 			log.Fatalf("s3 listen: %v", err)
 		}
+
 		log.Printf("s3hog: S3 API listening on %s", ln.Addr())
-		srv := &http.Server{Handler: s3Handler, ReadHeaderTimeout: 30 * time.Second}
+
+		srv := &http.Server{Handler: s3Handler, ReadHeaderTimeout: readHeaderTimeoutSeconds * time.Second}
 		if err := srv.Serve(ln); err != nil {
 			log.Fatalf("s3 serve: %v", err)
 		}
@@ -50,12 +64,15 @@ func main() {
 
 	// UI server
 	addr := ":" + cfg.UIPort
+
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("ui listen: %v", err)
 	}
+
 	log.Printf("s3hog: Web UI listening on %s", ln.Addr())
-	srv := &http.Server{Handler: uiHandler, ReadHeaderTimeout: 30 * time.Second}
+
+	srv := &http.Server{Handler: uiHandler, ReadHeaderTimeout: readHeaderTimeoutSeconds * time.Second}
 	if err := srv.Serve(ln); err != nil {
 		log.Fatalf("ui serve: %v", err)
 	}

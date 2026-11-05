@@ -6,3 +6,6 @@ s3hog-data/
 data/
 /tmp/
 .DS_Store
+dist/
+coverage.out
+oss-licenses/
