@@ -12,6 +12,7 @@ import (
 // Backend wraps a gofakes3 backend and publishes change events.
 type Backend struct {
 	gofakes3.Backend
+
 	broker *events.Broker
 }
 
@@ -21,17 +22,13 @@ func New(dataDir string, broker *events.Broker) (*Backend, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	b, err := s3afero.MultiBucket(fs)
 	if err != nil {
 		return nil, err
 	}
-	return &Backend{Backend: b, broker: broker}, nil
-}
 
-func (b *Backend) publish(e model.Event) {
-	if b.broker != nil {
-		b.broker.Publish(e)
-	}
+	return &Backend{Backend: b, broker: broker}, nil
 }
 
 func (b *Backend) CreateBucket(name string) error {
@@ -39,6 +36,7 @@ func (b *Backend) CreateBucket(name string) error {
 	if err == nil {
 		b.publish(model.Event{Type: "bucket_created", Bucket: name})
 	}
+
 	return err
 }
 
@@ -47,6 +45,7 @@ func (b *Backend) DeleteBucket(name string) error {
 	if err == nil {
 		b.publish(model.Event{Type: "bucket_deleted", Bucket: name})
 	}
+
 	return err
 }
 
@@ -55,14 +54,22 @@ func (b *Backend) ForceDeleteBucket(name string) error {
 	if err == nil {
 		b.publish(model.Event{Type: "bucket_deleted", Bucket: name})
 	}
+
 	return err
 }
 
-func (b *Backend) PutObject(bucket, key string, meta map[string]string, input io.Reader, size int64, conditions *gofakes3.PutConditions) (gofakes3.PutObjectResult, error) {
+func (b *Backend) PutObject(
+	bucket, key string,
+	meta map[string]string,
+	input io.Reader,
+	size int64,
+	conditions *gofakes3.PutConditions,
+) (gofakes3.PutObjectResult, error) {
 	res, err := b.Backend.PutObject(bucket, key, meta, input, size, conditions)
 	if err == nil {
 		b.publish(model.Event{Type: "created", Bucket: bucket, Key: key})
 	}
+
 	return res, err
 }
 
@@ -71,6 +78,7 @@ func (b *Backend) DeleteObject(bucket, key string) (gofakes3.ObjectDeleteResult,
 	if err == nil {
 		b.publish(model.Event{Type: "deleted", Bucket: bucket, Key: key})
 	}
+
 	return res, err
 }
 
@@ -81,15 +89,26 @@ func (b *Backend) DeleteMulti(bucket string, objects ...string) (gofakes3.MultiD
 			b.publish(model.Event{Type: "deleted", Bucket: bucket, Key: o})
 		}
 	}
+
 	return res, err
 }
 
-func (b *Backend) CopyObject(srcBucket, srcKey, dstBucket, dstKey string, meta map[string]string) (gofakes3.CopyObjectResult, error) {
+func (b *Backend) CopyObject(
+	srcBucket, srcKey, dstBucket, dstKey string,
+	meta map[string]string,
+) (gofakes3.CopyObjectResult, error) {
 	res, err := b.Backend.CopyObject(srcBucket, srcKey, dstBucket, dstKey, meta)
 	if err == nil {
 		b.publish(model.Event{Type: "created", Bucket: dstBucket, Key: dstKey})
 	}
+
 	return res, err
+}
+
+func (b *Backend) publish(e model.Event) {
+	if b.broker != nil {
+		b.broker.Publish(e)
+	}
 }
 
 var _ gofakes3.Backend = (*Backend)(nil)

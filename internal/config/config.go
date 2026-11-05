@@ -31,6 +31,7 @@ func Load() Config {
 	if cfg.AccessKeyID == "" || cfg.SecretKey == "" {
 		log.Fatal("ACCESS_KEY_ID and SECRET_ACCESS_KEY must be set; refusing to start with default credentials")
 	}
+
 	return cfg
 }
 
@@ -38,6 +39,7 @@ func envOr(key, def string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	}
+
 	return def
 }
 
@@ -46,10 +48,12 @@ func envBool(key string, def bool) bool {
 	if v == "" {
 		return def
 	}
+
 	b, err := strconv.ParseBool(v)
 	if err != nil {
 		return def
 	}
+
 	return b
 }
 
@@ -57,5 +61,6 @@ func firstNonEmpty(a, b string) string {
 	if a != "" {
 		return a
 	}
+
 	return b
 }

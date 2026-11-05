@@ -7,6 +7,8 @@ import (
 	"github.com/potibm/s3hog/internal/model"
 )
 
+const brokerBufferSize = 64
+
 // Broker distributes events to SSE subscribers.
 type Broker struct {
 	mu   sync.Mutex
@@ -19,10 +21,12 @@ func NewBroker() *Broker {
 
 // Subscribe returns a channel that receives published events.
 func (b *Broker) Subscribe() chan model.Event {
-	ch := make(chan model.Event, 64)
+	ch := make(chan model.Event, brokerBufferSize)
+
 	b.mu.Lock()
 	b.subs[ch] = struct{}{}
 	b.mu.Unlock()
+
 	return ch
 }
 
@@ -30,6 +34,7 @@ func (b *Broker) Subscribe() chan model.Event {
 func (b *Broker) Unsubscribe(ch chan model.Event) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
 	if _, ok := b.subs[ch]; ok {
 		delete(b.subs, ch)
 		close(ch)
@@ -40,6 +45,7 @@ func (b *Broker) Unsubscribe(ch chan model.Event) {
 func (b *Broker) Publish(e model.Event) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
 	for ch := range b.subs {
 		select {
 		case ch <- e:
@@ -51,5 +57,6 @@ func (b *Broker) Publish(e model.Event) {
 // Marshal returns the JSON encoding of an event.
 func Marshal(e model.Event) []byte {
 	b, _ := json.Marshal(e)
+
 	return b
 }

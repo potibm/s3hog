@@ -1,0 +1,53 @@
+version: 2
+
+project_name: s3hog
+
+builds:
+  - main: .
+    binary: s3hog
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - oss-licenses/**/*
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  mode: append
+  prerelease: auto
+
+sboms:
+  - artifacts: archive
+
+dockers_v2:
+  - images:
+      - "ghcr.io/potibm/s3hog"
+    tags:
+      - "{{ .Version }}"
+      - "{{ if not .IsNightly }}latest{{ end }}"
+    dockerfile: Dockerfile.goreleaser
+    platforms:
+      - linux/amd64
+      - linux/arm64
