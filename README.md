@@ -1,6 +1,6 @@
 # s3hog
 
-> ⚠️ **Development preview only.** s3hog is a lightweight S3 mock for local development and testing (think Mailpit, but for S3). It is **not** intended for production use: it ships with default credentials, has no TLS, no IAM, no durability guarantees beyond the local filesystem, and has not been security-reviewed. Do not expose it to untrusted networks.
+> ⚠️ **Development preview only.** s3hog is a lightweight S3 mock for local development and testing (think Mailpit, but for S3). It is **not** intended for production use: it has no TLS, no IAM, no durability guarantees beyond the local filesystem, and has not been security-reviewed. Do not expose it to untrusted networks. Credentials must be configured explicitly via environment variables; no default credentials are provided.
 
 A small Go binary that exposes an S3-compatible API on one port and a **read-only** web UI listing all uploaded objects on another.
 
@@ -28,7 +28,7 @@ docker compose up -d
 
 Pre-built multi-arch images are published to `ghcr.io/potibm/s3hog:latest` on every push to `main`.
 
-Open http://localhost:8025 and use S3 credentials `s3hog` / `s3hogsecret`.
+Open http://localhost:8025. Set `ACCESS_KEY_ID` and `SECRET_ACCESS_KEY` (or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`) before starting.
 
 If ports `9000` or `8025` are already in use on your host, override the host-side ports:
 
@@ -42,8 +42,8 @@ S3_HOST_PORT=19000 UI_HOST_PORT=18025 docker compose up -d
 |---|---|---|
 | `S3_PORT` | `9000` | S3 API port (inside the container) |
 | `UI_PORT` | `8025` | Web UI port (inside the container) |
-| `ACCESS_KEY_ID` | `s3hog` | S3 access key (also reads `AWS_ACCESS_KEY_ID`) |
-| `SECRET_ACCESS_KEY` | `s3hogsecret` | S3 secret key (also reads `AWS_SECRET_ACCESS_KEY`) |
+| `ACCESS_KEY_ID` | *(required)* | S3 access key (also reads `AWS_ACCESS_KEY_ID`) |
+| `SECRET_ACCESS_KEY` | *(required)* | S3 secret key (also reads `AWS_SECRET_ACCESS_KEY`) |
 | `S3_DATA_DIR` | `/data` | Persistence directory |
 | `AUTO_BUCKET` | `true` | Auto-create buckets on first use |
 | `REGION` | `us-east-1` | Region scope |

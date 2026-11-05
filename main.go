@@ -41,7 +41,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("s3 listen: %v", err)
 		}
-		log.Printf("s3hog: S3 API listening on %s (access key: %s)", ln.Addr(), cfg.AccessKeyID)
+		log.Printf("s3hog: S3 API listening on %s", ln.Addr())
 		srv := &http.Server{Handler: s3Handler, ReadHeaderTimeout: 30 * time.Second}
 		if err := srv.Serve(ln); err != nil {
 			log.Fatalf("s3 serve: %v", err)
